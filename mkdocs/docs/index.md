@@ -1,32 +1,14 @@
-<p align="center">
-  <img src="mkdocs/docs/assets/logo_full.png" alt="LaikaLLM logo" width="60%"/>
-</p>
+---
+hide:
+  - navigation
+  - toc
+---
 
 <p align="center">
-  <a href="https://silleellie.github.io/LaikaLLM/"><img
-    src="https://img.shields.io/badge/Documentation-1d1625?logo=readthedocs&style=for-the-badge&logoColor=white"
-    alt="Documentation"
-  /></a>
-  <a href="https://huggingface.co/"><img
-    src="https://tinyurl.com/2p9ft7xf"
-    alt="Hugging Face"
-  /></a>
-  <a href="https://pytorch.org/"><img
-    src="https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white"
-    alt="Pytorch"
-  /></a>
-  <a href="https://wandb.ai/"><img
-    src="https://img.shields.io/badge/Weights_&_Biases-FFCC33?style=for-the-badge&logo=WeightsAndBiases&logoColor=black"
-    alt="WandB"
-  /></a>
-  <a href="https://hub.docker.com/r/silleellie/laikallm"><img
-    src="https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white"
-    alt="Docker"
-  /></a>
+  <img src="assets/logo_full.png" alt="drawing" width="50%"/>
 </p>
 
 # LaikaLLM
-[[Documentation](https://silleellie.github.io/LaikaLLM/)][[Sample Experiments](sample_experiments)]
 
 LaikaLLM is a software, for researchers, that helps in setting up a repeatable, reproducible, 
 replicable protocol for **training** and **evaluating** <ins>multitask</ins> LLM for recommendation!
@@ -78,8 +60,6 @@ eval:
 
 The whole pipeline can then be executed by simply invoking `python laikaLLM.py -c config.yml`!
 
-If you want to have a full view on how experiments are visualized in WandB and more, head up to [sample_experiments!](sample_experiments) 
-
 ## Motivation
 
 The adoption of LLM in the recommender system domain is a *new* research area, thus it's **difficult** to 
@@ -87,143 +67,6 @@ find **pre-made** and **well-built** software designed *specifically* for LLM.
 
 With *LaikaLLM* the idea is to fill that gap, or at least "start the conversation" about the importance
 of developing *accountable* experiment pipelines
-
-## Installation
-
-### Via Docker Image
-
-Simply pull the latest [LaikaLLM Docker Image](https://hub.docker.com/r/silleellie/laikallm) 
-which includes every preliminary step to run the project, including setting `PYTHONHASHSEED` and
-`CUBLAS_WORKSPACE_CONFIG` for reproducibility purposes
-
-### From source
-
-*LaikaLLM* requires **Python 3.10** or later, and all packages needed are listed in 
-[`requirements.txt`](requirements.txt)
-
-- Torch with cuda **11.7** has been set as requirement for reproducibility purposes, but feel free to change the cuda
-  version with the most appropriate for your use case!
-
-To install **LaikaLLM**:
-
-1. Clone this repository and change work directory:
-  ```
-  git clone https://github.com/Silleellie/LaikaLLM.git
-  cd LaikaLLM
-  ```
-2. Install the requirements:
-  ```
-  pip install -r requirements.txt
-  ```
-3. Start experimenting!
-  - Use LaikaLLM via *Python API* or via `.yaml` config!
-
-**NOTE**: It is **highly** suggested to set the following environment variables to obtain *100%* reproducible results of
-your experiments:
-
-```bash
-export PYTHONHASHSEED=42
-export CUBLAS_WORKSPACE_CONFIG=:16:8
-```
-
-You can check useful info about the above environment variables [here](https://docs.python.org/3.3/using/cmdline.html#envvar-PYTHONHASHSEED) and [here](https://docs.nvidia.com/cuda/cublas/index.html#results-reproducibility)
-
-
-## Usage
-
-*Note:* when using LaikaLLM, the working directory should be set to the root of the repository!
-
-*LaikaLLM* can be used in two different ways:
-
-- `.yaml` config
-- *Python API*
-
-Both use cases follow the **data-model-evaluate** logic, in *code* and *project* structure, but also in the effective
-usage of LaikaLLM
-
-In the documentation there are *extensive* examples for both use cases, what follows is a small example of the same
-experiment using the `.yaml` config and the *Python API*.
-
-In this simple experiment, we will:
-
-1. Use the `toys` Amazon Dataset and add 'item' and 'user' prefixes to each item and user ids 
-2. Train the **distilgpt2** model on the SequentialSideInfoTask
-3. Evaluate results using `hit@10` and `hit@5`
-
-### Yaml config
-
-- Define your custom `params.yml:`
-
-  ```yaml
-  exp_name: simple_exp
-  device: cuda:0
-  random_seed: 42
-  
-  data:
-    AmazonDataset:
-      dataset_name: toys
-      add_prefix_items_users: true
-  
-  model:
-    GPT2Rec:
-      name_or_path: "distilgpt2"
-    n_epochs: 10
-    train_batch_size: 8
-    train_tasks:
-      - SequentialSideInfoTask
-  
-  eval:
-    eval_batch_size: 4
-    eval_tasks:
-      SequentialSideInfoTask:
-        - hit@10
-        - hit@5
-  ```
-- After defining the above `params.yml`, simply execute the experiment with `python laikaLLM.py -c params.yml`
-
-  - The model trained and the evaluation results will be saved into `models` and `reports/metrics`
-
-### Python API
-
-```python
-from src.data.datasets.amazon_dataset import AmazonDataset
-from src.data.tasks.tasks import SequentialSideInfoTask
-from src.evaluate.evaluator import RecEvaluator
-from src.evaluate.metrics.ranking_metrics import Hit
-from src.model.models.gpt import GPT2Rec
-from src.model.trainer import RecTrainer
-
-if __name__ == "__main__":
-    
-    # data phase
-    ds = AmazonDataset("toys", add_prefix_items_users=True)
-    
-    ds_splits = ds.get_hf_datasets()
-    
-    train_split = ds_splits["train"]
-    val_split = ds_splits["validation"]
-    test_split = ds_splits["test"]
-    
-    # model phase
-    model = GPT2Rec("distilgpt2",
-                    training_tasks_str=["SequentialSideInfoTask"],
-                    all_unique_labels=list(ds.all_items))
-    
-    trainer = RecTrainer(model,
-                         n_epochs=10,
-                         batch_size=8,
-                         train_sampling_fn=ds.sample_train_sequence,
-                         output_dir="models/simple_experiment")
-    
-    trainer.train(train_split)
-    
-    # eval phase
-    evaluator = RecEvaluator(model, eval_batch_size=4)
-    
-    evaluator.evaluate_suite(test_split,
-                             tasks_to_evaluate={SequentialSideInfoTask(): [Hit(k=10), Hit(k=5)]},
-                             output_dir="reports/metrics/simple_experiment")
-```
 
 ## Credits
 
@@ -241,14 +84,10 @@ Project Organization
     │   ├── 📁 processed                     <- The final, canonical data sets used for training/validation/evaluation
     │   └── 📁 raw                           <- The original, immutable data dump
     │
-    ├── 📁 mkdocs                        <- Directory containing source code for the online documentation
-    |
     ├── 📁 models                        <- Directory where trained and serialized models will be stored
     │
     ├── 📁 reports                       <- Where metrics will be stored after performing the evaluation phase
     │   └── 📁 metrics                          
-    │
-    ├── 📁 sample_experiments            <- Config and results of multiple experiment runs made with LaikaLLM
     │
     ├── 📁 src                           <- Source code of the project
     │   ├── 📁 data                          <- All scripts related to datasets and tasks
@@ -274,10 +113,8 @@ Project Organization
     │   ├── 📄 utils.py                  <- Contains utils function for the project
     │   └── 📄 yml_parse.py              <- Script responsible for coordinating the parsing of the .yaml file
     │
-    ├── 📁 tests                         <- Package containing all tests for the source code
-    |
-    ├── 📄 laikaLLM.py                   <- Script to invoke via command line to use LaikaLLM via .yaml
     ├── 📄 LICENSE                       <- MIT License
+    ├── 📄 laikaLLM.py                   <- Script to invoke via command line to use LaikaLLM via .yaml
     ├── 📄 params.yml                    <- The example .yaml config for starting using LaikaLLM
     ├── 📄 README.md                     <- The top-level README for developers using this project
     └── 📄 requirements.txt              <- The requirements file for reproducing the environment (src package)
